@@ -2,7 +2,8 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>CYBORG // TAG SYSTEM (CLOUD DB PRO v8.0) - WONGWIAN</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CYBORG // TAG SYSTEM (v9.0 SYNC PRO) - WONGWIAN</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -10,50 +11,51 @@
 
 <style>
 :root {
-  /* Luxury Gold Theme */
   --gold: #D4AF37;
   --gold-light: #F3E5AB;
   --gold-dark: #997A00;
-  --bg0: #080808; 
-  --bg1: #121212; 
-  --bg2: #1a1a1a; 
+  --bg0: #080808;
+  --bg1: #121212;
+  --bg2: #1a1a1a;
   --ln:  rgba(212, 175, 55, 0.15);
-  --txt: #e0e0e0; 
+  --txt: #e0e0e0;
   --txt2: #888888;
-  
-  /* Legacy mapping to prevent code breakage */
-  --o:  var(--gold); 
-  --o2: var(--gold-light); 
-  --b:  #ffffff; 
-  --g:  #4caf50; 
+
+  --o:  var(--gold);
+  --o2: var(--gold-light);
+  --b:  #ffffff;
+  --g:  #4caf50;
   --r:  #e53935;
 
   --f-hud: 'Orbitron', monospace; --f-ui:  'Rajdhani', sans-serif; --f-tag: 'Kanit', sans-serif;
   --tag-w: 5.4cm; --tag-h: 4.0cm; --large-w: 11.4cm; --large-h: 6.0cm;
-  --price-sz: 46px; 
+  --price-sz: 46px;
   --dual-price-sz: 28px;  --meta-sz: 10px;
-  --ribbon-f-sz: 10px; --ribbon-x: -32px;  --ribbon-y: 15px;  
+  --ribbon-f-sz: 10px; --ribbon-x: -32px;  --ribbon-y: 15px;
 }
 
 @keyframes scan-beam  { 0%{top:-20%} 100%{top:110%} }
 @keyframes blink      { 0%,100%{opacity:1} 49%,51%{opacity:0} }
+@keyframes modal-in   { from{opacity:0; transform:translateY(20px) scale(.97)} to{opacity:1; transform:none} }
+@keyframes fab-pop    { from{opacity:0; transform:scale(.5)} to{opacity:1; transform:scale(1)} }
 
 *{box-sizing:border-box;margin:0;padding:0}
 body { font-family: var(--f-ui); background: var(--bg0); color: var(--txt); display: flex; height: 100vh; overflow: hidden; }
 body::after { content:''; position:fixed; inset:0; background: repeating-linear-gradient( 0deg, rgba(0,0,0,.06) 0px, rgba(0,0,0,.06) 1px, transparent 1px, transparent 4px ); pointer-events:none; z-index:9999; }
 .scan-beam { position:fixed; left:0; right:0; height:160px; background: linear-gradient(to bottom, transparent, rgba(212,175,55,.018) 45%, rgba(212,175,55,.035) 50%, rgba(212,175,55,.018) 55%, transparent ); pointer-events:none; z-index:9998; animation: scan-beam 7s linear infinite; }
 
-.sidebar { width: 440px; min-width: 440px; background: var(--bg1); border-right: 1px solid var(--ln); display: flex; flex-direction: column; overflow: hidden; position: relative; background-image: linear-gradient(rgba(212,175,55,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,55,.025) 1px, transparent 1px); background-size: 40px 40px; }
-.sb-head { padding: 18px 20px 14px; border-bottom: 1px solid var(--ln); flex-shrink: 0; position: relative; background: linear-gradient(135deg, rgba(212,175,55,.07) 0%, transparent 50%); }
-.hud-title { font-family: var(--f-hud); font-size: 17px; font-weight: 900; color: var(--o); letter-spacing: 4px; text-transform: uppercase; }
-.hud-sub { font-family: var(--f-hud); font-size: 10px; letter-spacing: 2px; color: var(--txt2); margin-top: 5px; text-transform: uppercase; display: flex; align-items: center; gap: 7px; }
+.sidebar { width: 460px; min-width: 460px; background: var(--bg1); border-right: 1px solid var(--ln); display: flex; flex-direction: column; overflow: hidden; position: relative; background-image: linear-gradient(rgba(212,175,55,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,55,.025) 1px, transparent 1px); background-size: 40px 40px; }
+.sb-head { padding: 16px 20px 12px; border-bottom: 1px solid var(--ln); flex-shrink: 0; position: relative; background: linear-gradient(135deg, rgba(212,175,55,.07) 0%, transparent 50%); }
+.hud-title { font-family: var(--f-hud); font-size: 16px; font-weight: 900; color: var(--o); letter-spacing: 3px; text-transform: uppercase; }
+.hud-sub { font-family: var(--f-hud); font-size: 9px; letter-spacing: 2px; color: var(--txt2); margin-top: 5px; text-transform: uppercase; display: flex; align-items: center; gap: 7px; }
 .blink-dot { width:5px; height:5px; background: var(--g); border-radius:50%; box-shadow: 0 0 6px var(--g); flex-shrink:0; animation: blink 1.4s step-start infinite; }
-#status-bar { padding: 8px 20px; font-family: var(--f-hud); font-size: 11px; letter-spacing: 1.5px; color: var(--b); border-bottom: 1px solid var(--ln); display: flex; align-items:center; gap:8px; flex-shrink:0; background: rgba(212,175,55,.025); text-transform:uppercase; transition: color 0.3s; }
+#status-bar { padding: 7px 20px; font-family: var(--f-hud); font-size: 10px; letter-spacing: 1.5px; color: var(--b); border-bottom: 1px solid var(--ln); display: flex; align-items:center; gap:8px; flex-shrink:0; background: rgba(212,175,55,.025); text-transform:uppercase; transition: color 0.3s; }
 
-.sb-body { flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:9px; min-height:0; }
-.sb-body::-webkit-scrollbar { width:2px; } .sb-body::-webkit-scrollbar-thumb { background:var(--o); }
+.sb-body { flex:1; overflow-y:auto; overflow-x:hidden; padding:12px 14px; display:flex; flex-direction:column; gap:9px; min-height:0; scroll-behavior:smooth; }
+.sb-body::-webkit-scrollbar { width:5px; } .sb-body::-webkit-scrollbar-thumb { background:rgba(212,175,55,.5); border-radius:3px; } .sb-body::-webkit-scrollbar-track { background:rgba(0,0,0,.3); }
 .panel { background: rgba(10,10,10,.8); border: 1px solid var(--ln); position: relative; }
-.p-lbl { font-family: var(--f-hud); font-size: 10px; font-weight:700; letter-spacing:2px; color: var(--o); text-transform:uppercase; padding: 8px 12px 6px; border-bottom: 1px solid var(--ln); display:flex; align-items:center; gap:6px; }
+.p-lbl { font-family: var(--f-hud); font-size: 10px; font-weight:700; letter-spacing:2px; color: var(--o); text-transform:uppercase; padding: 8px 12px 6px; border-bottom: 1px solid var(--ln); display:flex; align-items:center; gap:6px; justify-content:space-between; }
+.p-lbl .p-count { font-family:var(--f-hud); font-size:9px; background:rgba(212,175,55,.12); color:var(--o); padding:1px 7px; border-radius:8px; }
 
 .inp { width:100%; background: rgba(0,0,0,.55); border: 1px solid rgba(212,175,55,.13); color: var(--txt); font-family: var(--f-ui); font-size: 15px; padding: 9px 11px; outline:none; transition:.2s; }
 .inp:focus { border-color: var(--o); background: rgba(212,175,55,.04); box-shadow: 0 0 0 1px rgba(212,175,55,.18); }
@@ -62,14 +64,21 @@ select.inp { cursor:pointer; } select.inp option { background:var(--bg1); color:
 .btn-connect { background:transparent; border:1px solid var(--o); color:var(--o); padding:9px 16px; font-family:var(--f-hud); font-size:11px; font-weight:700; cursor:pointer; transition:.2s; white-space:nowrap; }
 .btn-connect:hover { background:var(--o); color:#000; box-shadow:0 0 15px rgba(212,175,55,.3); }
 
-/* SLIDER STYLES */
-.slider-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+/* ============ NEW STEPPER SLIDER (easy adjust) ============ */
+.slider-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; grid-column:1/-1; min-width:0; }
 .slider-header { display: flex; justify-content: space-between; align-items: center; }
 .slider-val { font-family: var(--f-hud); font-size: 11px; color: var(--gold-light); }
-input[type=range].inp-slider { -webkit-appearance: none; width: 100%; background: transparent; padding: 5px 0; }
-input[type=range].inp-slider::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: var(--gold); cursor: pointer; margin-top: -5px; box-shadow: 0 0 5px rgba(212,175,55,0.5); }
-input[type=range].inp-slider::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: var(--ln); border-radius: 2px; }
-input[type=range].inp-slider:focus { outline: none; }
+.stepper { display:flex; align-items:center; gap:6px; min-width:0; width:100%; }
+.stepper input[type=range] { -webkit-appearance:none; flex:1 1 0; min-width:0; background:transparent; padding:6px 0; height:20px; }
+.stepper input[type=range]::-webkit-slider-runnable-track { height:6px; background:var(--ln); border-radius:3px; }
+.stepper input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; height:20px; width:20px; border-radius:50%; background:var(--gold); cursor:pointer; margin-top:-7px; box-shadow:0 0 6px rgba(212,175,55,0.6); border:2px solid #000; }
+.stepper input[type=range]::-moz-range-track { height:6px; background:var(--ln); border-radius:3px; }
+.stepper input[type=range]::-moz-range-thumb { height:18px; width:18px; border:2px solid #000; border-radius:50%; background:var(--gold); cursor:pointer; }
+.step-btn { flex-shrink:0; width:30px; height:30px; border:1px solid var(--ln); background:rgba(212,175,55,.06); color:var(--o); font-size:18px; font-weight:700; cursor:pointer; border-radius:4px; display:flex; align-items:center; justify-content:center; transition:.12s; user-select:none; -webkit-user-select:none; }
+.step-btn:hover { background:var(--o); color:#000; }
+.step-btn:active { transform:scale(.9); }
+.step-num { flex-shrink:0; width:52px; height:30px; background:rgba(0,0,0,.6); border:1px solid var(--ln); color:var(--gold-light); font-family:var(--f-hud); font-size:12px; text-align:center; outline:none; border-radius:4px; }
+.step-num:focus { border-color:var(--o); }
 
 .search-container { position:relative; padding:10px 12px 12px; }
 .search-box-inner { display:flex; gap:5px; position: relative; }
@@ -77,111 +86,171 @@ input[type=range].inp-slider:focus { outline: none; }
 .search-box-inner .inp { padding-left:28px; flex:1; }
 .btn-csv { border-color:var(--b); color:var(--b); padding:9px 12px; }
 .btn-csv:hover { background:var(--b); color:#000; box-shadow:0 0 15px rgba(255,255,255,.3); }
-.search-drop { display:none; margin-top: 8px; background:rgba(10,10,10,.98); border:1px solid var(--o); max-height:180px; overflow-y:auto; box-shadow: inset 0 0 10px rgba(212,175,55,.05); }
-.s-item { padding:9px 12px; cursor:pointer; border-bottom:1px solid var(--ln); transition:.15s; }
+.search-drop { display:none; margin-top: 8px; background:rgba(10,10,10,.98); border:1px solid var(--o); max-height:220px; overflow-y:auto; box-shadow: inset 0 0 10px rgba(212,175,55,.05); }
+.s-item { padding:9px 12px; cursor:pointer; border-bottom:1px solid var(--ln); transition:.15s; display:flex; gap:9px; align-items:center; }
 .s-item:hover { background:rgba(212,175,55,.07); border-left:2px solid var(--o); }
+.s-thumb { width:34px; height:34px; flex-shrink:0; object-fit:cover; border:1px solid var(--ln); border-radius:3px; background:#000; }
 .s-name { font-size:15px; font-weight:600; color:var(--gold-light); font-family:var(--f-tag); line-height:1.3; }
 .s-meta { font-family:var(--f-hud); font-size:10px; color:var(--txt2); margin-top:3px; letter-spacing:1px; }
 
-.queue-body { padding:8px 10px; display:flex; flex-direction:column; gap:7px; min-height:100px; overflow-y:visible; }
+.queue-body { padding:8px 10px; display:flex; flex-direction:column; gap:7px; min-height:80px; }
 .q-empty { text-align:center; font-family:var(--f-hud); font-size:11px; letter-spacing:2px; color:rgba(212,175,55,.35); padding:28px 0; }
 .q-item { background:rgba(0,0,0,.45); border:1px solid var(--ln); border-left:2px solid var(--o); padding:8px; transition:.2s; }
 .q-item.selected { border-left: 3px solid var(--o); border-color: rgba(212,175,55,.6); background: rgba(212,175,55,.07); }
+.q-item.price-diff { border-left:3px solid var(--r); }
 .q-row { display:flex; gap:5px; margin-bottom:5px; align-items:center; } .q-row:last-child { margin-bottom:0; }
-
 .qi { min-width: 0; background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.06); color:var(--txt); font-family:var(--f-tag); font-size:13px; padding:5px 6px; outline:none; width:100%; transition:.15s; text-align:center; }
 .qi:focus { border-color:var(--o); background:rgba(0,0,0,.8); box-shadow:0 0 0 1px rgba(212,175,55,.15); }
-.qi.name  { text-align:left; flex:1; } 
-.qi.price { border-color:rgba(212,175,55,.22); color:var(--o2); background:rgba(212,175,55,.03); font-weight:700; } 
-.qi.price2{ border-color:rgba(255,255,255,.22); color:var(--b); background:rgba(255,255,255,.03); font-weight:700; } 
+.qi.name  { text-align:left; flex:1; }
+.qi.price { border-color:rgba(212,175,55,.22); color:var(--o2); background:rgba(212,175,55,.03); font-weight:700; }
+.qi.price2{ border-color:rgba(255,255,255,.22); color:var(--b); background:rgba(255,255,255,.03); font-weight:700; }
 .qi.sm    { width:46px; flex-shrink:0; }
 .qi-lbl { font-family:var(--f-hud); font-size:9px; color:var(--txt2); padding:0 3px; flex-shrink:0; }
-
+.q-diff-flag { font-family:var(--f-hud); font-size:9px; color:var(--r); background:rgba(229,57,53,.12); padding:3px 6px; margin-bottom:5px; display:flex; align-items:center; gap:6px; cursor:pointer; }
+.q-diff-flag b { color:var(--gold-light); }
 .q-foot { display:flex; justify-content:space-between; align-items:center; margin-top:6px; border-top: 1px solid var(--ln); padding-top:6px;}
 .qty-ctrl { display:flex; align-items:center; background:rgba(0,0,0,.6); border:1px solid var(--ln); overflow:hidden; }
-.qb { background:transparent; border:none; color:var(--txt2); width:26px; height:26px; cursor:pointer; font-size:15px; transition:.15s; display:flex; align-items:center; justify-content:center; } .qb:hover { color:var(--o); background:rgba(212,175,55,.08); }
+.qb { background:transparent; border:none; color:var(--txt2); width:30px; height:30px; cursor:pointer; font-size:16px; transition:.15s; display:flex; align-items:center; justify-content:center; } .qb:hover { color:var(--o); background:rgba(212,175,55,.08); }
 .qv { color:var(--b); font-family:var(--f-hud); font-size:14px; font-weight:700; width:32px; text-align:center; background:transparent; border:none; pointer-events:none; }
-.q-del { background:transparent; border:1px solid rgba(255,34,85,.15); color:rgba(255,34,85,.35); width:26px; height:26px; cursor:pointer; font-size:11px; transition:.2s; display:flex; align-items:center; justify-content:center; } .q-del:hover { color:var(--r); border-color:var(--r); background:rgba(255,34,85,.1); transform:rotate(90deg); }
+.q-thumb-mini { width:30px; height:30px; object-fit:cover; border:1px solid var(--ln); border-radius:3px; flex-shrink:0; background:#000; cursor:pointer; }
+.q-del { background:transparent; border:1px solid rgba(255,34,85,.15); color:rgba(255,34,85,.35); width:30px; height:30px; cursor:pointer; font-size:11px; transition:.2s; display:flex; align-items:center; justify-content:center; } .q-del:hover { color:var(--r); border-color:var(--r); background:rgba(255,34,85,.1); transform:rotate(90deg); }
 
 .cfg-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:10px 12px; }
 .cfg-full { grid-column:1/-1; }
 .cfg-lbl { font-family:var(--f-hud); font-size:9px; letter-spacing:1px; color:var(--txt2); text-transform:uppercase; }
+.cfg-sec-lbl { border-bottom:1px dashed var(--ln); padding-bottom:4px; color:var(--gold-light); }
 .cb-wrap { padding:8px 12px 10px; border-top:1px solid var(--ln); display:flex; align-items:center; gap:8px; }
-.cb-wrap input[type="checkbox"] { accent-color:var(--o); width:13px; height:13px; cursor:pointer; }
+.cb-wrap input[type="checkbox"] { accent-color:var(--o); width:14px; height:14px; cursor:pointer; }
 .cb-wrap label { font-family:var(--f-ui); font-size:14px; color:var(--txt2); cursor:pointer; }
 
 .sb-foot { padding:12px 14px; border-top:1px solid var(--ln); background:var(--bg1); display:flex; flex-direction:column; gap:7px; flex-shrink:0; position:relative; }
 .btn-row { display:flex; gap:7px; }
 .btn { font-family:var(--f-hud); font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; border:1px solid transparent; padding:10px 14px; cursor:pointer; transition:.2s; flex:1; }
-.btn-io { background:rgba(255,255,255,.04); border-color:rgba(255,255,255,.18); color:var(--b); } .btn-io:hover { background:rgba(255,255,255,.1); border-color:var(--b); box-shadow:0 0 12px rgba(255,255,255,.2); }
+.btn-io { background:rgba(255,255,255,.04); border-color:rgba(255,255,255,.18); color:var(--b); } .btn-io:hover { background:rgba(255,255,255,.1); border-color:var(--b); }
+.btn-sync { background:rgba(76,175,80,.08); border-color:var(--g); color:var(--g); } .btn-sync:hover { background:var(--g); color:#000; box-shadow:0 0 15px rgba(76,175,80,.4); }
 .btn-print { background:var(--o); color:#000; font-size:13px; border:none; padding:13px; position:relative; overflow:hidden; font-weight:900; }
 .btn-print:hover { transform:translateY(-1px); box-shadow:0 0 25px rgba(212,175,55,.6) !important; }
 .btn-clear { background:transparent; border-color:rgba(255,34,85,.18); color:rgba(255,100,130,.5); font-size:10px; } .btn-clear:hover { border-color:var(--r); color:var(--r); background:rgba(255,34,85,.06); }
-.btn-preset { background:rgba(212,175,55,.05); border:1px solid var(--o); color:var(--o); font-size:10px; padding:6px; text-align:center; }
-.btn-preset:hover { background:var(--o); color:#000; box-shadow:0 0 10px rgba(212,175,55,.4); }
+.btn-preset { background:rgba(212,175,55,.05); border:1px solid var(--o); color:var(--o); font-size:10px; padding:7px; text-align:center; }
+.btn-preset:hover { background:var(--o); color:#000; }
+
+.mode-btns { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+.mode-btn { font-family:var(--f-tag); font-size:12px; padding:6px 4px; border:1px solid var(--ln); background:rgba(0,0,0,.4); color:var(--txt2); cursor:pointer; border-radius:3px; transition:.15s; text-align:center; }
+.mode-btn.active { border-color:var(--o); background:rgba(212,175,55,.12); color:var(--gold-light); font-weight:600; }
 
 .toast-container { position:fixed; bottom:20px; right:20px; z-index:10000; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
 .toast-msg { background: rgba(15,15,15,0.95); border-left: 4px solid var(--gold); color: #fff; padding: 14px 20px; font-family: var(--f-hud); font-size: 11px; border-radius: 2px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); opacity: 0; transform: translateX(100%); transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; }
 .toast-msg.show { opacity: 1; transform: translateX(0); }
 
+/* ============ SYNC CONFIRM MODAL ============ */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.8); backdrop-filter:blur(3px); z-index:10001; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.show { display:flex; }
+.modal-box { background:var(--bg1); border:1px solid var(--o); max-width:560px; width:100%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 0 40px rgba(212,175,55,.2); animation:modal-in .25s ease; }
+.modal-head { padding:16px 20px; border-bottom:1px solid var(--ln); display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg, rgba(212,175,55,.08), transparent); }
+.modal-title { font-family:var(--f-hud); font-size:14px; font-weight:900; color:var(--o); letter-spacing:2px; }
+.modal-sub { font-family:var(--f-ui); font-size:13px; color:var(--txt2); margin-top:3px; }
+.modal-body { padding:12px 16px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
+.diff-row { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; padding:10px 12px; background:rgba(0,0,0,.5); border:1px solid var(--ln); border-left:3px solid var(--r); }
+.diff-check { width:18px; height:18px; accent-color:var(--o); cursor:pointer; }
+.diff-name { font-family:var(--f-tag); font-size:14px; color:var(--gold-light); }
+.diff-bc { font-family:var(--f-hud); font-size:9px; color:var(--txt2); margin-top:2px; }
+.diff-prices { display:flex; align-items:center; gap:8px; font-family:var(--f-hud); font-size:14px; white-space:nowrap; }
+.diff-old { color:var(--txt2); text-decoration:line-through; }
+.diff-arrow { color:var(--o); }
+.diff-new { color:var(--g); font-weight:700; }
+.modal-foot { padding:14px 16px; border-top:1px solid var(--ln); display:flex; gap:8px; }
+.modal-btn { flex:1; font-family:var(--f-hud); font-size:11px; font-weight:700; letter-spacing:1px; padding:11px; cursor:pointer; border:1px solid transparent; transition:.2s; text-transform:uppercase; }
+.mb-confirm { background:var(--g); color:#000; border:none; }
+.mb-confirm:hover { box-shadow:0 0 15px rgba(76,175,80,.5); }
+.mb-cancel { background:transparent; border-color:var(--ln); color:var(--txt2); }
+.mb-cancel:hover { border-color:var(--txt); color:var(--txt); }
+.modal-selectall { padding:8px 16px; border-bottom:1px solid var(--ln); display:flex; align-items:center; gap:8px; font-family:var(--f-ui); font-size:13px; color:var(--txt2); }
+
+/* ============ SCROLL-TO-TOP FAB ============ */
+.fab-top { position:fixed; bottom:200px; left:210px; width:42px; height:42px; border-radius:50%; background:var(--o); color:#000; border:none; font-size:22px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.5), 0 0 12px rgba(212,175,55,.4); display:none; align-items:center; justify-content:center; z-index:600; animation:fab-pop .2s ease; }
+.fab-top.show { display:flex; }
+.fab-top:hover { background:var(--gold-light); transform:translateY(-2px); }
+
 .workspace { flex:1; overflow:auto; background:var(--bg0); display:flex; align-items:flex-start; justify-content:center; padding:40px; position:relative; }
 #print-area { background:#fff; width:210mm; min-height:297mm; padding:8mm; box-shadow: 0 0 0 1px rgba(212,175,55,.12), 0 0 40px rgba(212,175,55,.1), 0 30px 80px rgba(0,0,0,.7); display:flex; flex-wrap:wrap; gap:1.5mm; align-content:flex-start; position:relative; border-radius:1px; }
 .empty-msg { width:100%; text-align:center; color:#a0b8cc; margin-top:100px; font-family:var(--f-hud); font-size:10px; letter-spacing:5px; text-transform:uppercase; }
 
-/* TAG STYLES */
-.price-tag { background:#fff; border:2px solid #000; display:flex; flex-direction:column; box-sizing:border-box; page-break-inside:avoid; font-family:var(--f-tag); position:relative; height: var(--tag-h); width: var(--tag-w); overflow:hidden; }
+.ws-fab-top { position:fixed; bottom:36px; right:36px; width:50px; height:50px; border-radius:50%; background:var(--o); color:#000; border:none; font-size:24px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.6), 0 0 16px rgba(212,175,55,.5); display:none; align-items:center; justify-content:center; z-index:500; }
+.ws-fab-top.show { display:flex; }
+.ws-fab-top:hover { background:var(--gold-light); }
+
+/* ============ TAG STYLES (fixed Thai vowel clipping) ============ */
+.price-tag { background:#fff; border:2px solid #000; display:flex; flex-direction:column; box-sizing:border-box; page-break-inside:avoid; font-family:var(--f-tag); position:relative; height: var(--tag-h); width: var(--tag-w); overflow:hidden; cursor:pointer; }
 .tag-ribbon { position: absolute; top: var(--ribbon-y); right: var(--ribbon-x); background: #000; color: #fff; font-size: var(--ribbon-f-sz); font-weight: 800; padding: 3px 45px; transform: rotate(45deg); z-index: 10; text-align: center; }
-.tag-header  { background:#000; color:#fff; text-align:center; font-size:10px; font-weight:800; padding:2px 0; letter-spacing:1px; flex: 0 0 16px; overflow: hidden; }
-.tag-name-area { flex: 0 0 34px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2px 4px; border-bottom:1px solid #000; overflow: hidden; }
-.tag-name { font-weight:600; text-align:center; line-height:1.1; color:#000; width: 100%; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-wrap: balance; word-break: break-word;}
-.tag-date-txt { font-size: 8px; font-weight: 600; color: #444; letter-spacing: 0.5px; line-height: 1.1; margin-top:1px;}
-.tag-mid-std { flex: 1 1 auto; display:flex; justify-content:space-between; align-items:flex-end; padding:2px 5px; overflow: hidden; }
-.tag-info { display:flex; flex-direction:column; font-size:var(--meta-sz); color:#000; line-height:1.2; justify-content:flex-end; padding-bottom:1px;}
-.badge { background:#000; color:#fff; font-size:calc(var(--meta-sz) - 1px); font-weight:800; padding:0 3px; border-radius:2px; margin-right:2px; display:inline-block; }
+.tag-header  { background:#000; color:#fff; text-align:center; font-size:10px; font-weight:800; padding:3px 0; letter-spacing:1px; flex: 0 0 18px; overflow: visible; line-height:1.3; }
+.tag-name-area { flex: 0 0 36px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2px 4px; border-bottom:1px solid #000; overflow: hidden; }
+.tag-name { font-weight:600; text-align:center; line-height:1.25; color:#000; width: 100%; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break: break-word; padding:1px 0; }
+.tag-date-txt { font-size: 8px; font-weight: 600; color: #444; letter-spacing: 0.3px; line-height: 1.3; margin-top:1px;}
+.tag-mid-std { flex: 1 1 auto; display:flex; justify-content:space-between; align-items:flex-end; padding:2px 5px; overflow: hidden; gap:4px; }
+.tag-img-side { flex:0 0 auto; width:38%; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.tag-img-side img { max-width:100%; max-height:100%; object-fit:contain; }
+.tag-info { display:flex; flex-direction:column; font-size:var(--meta-sz); color:#000; line-height:1.35; justify-content:flex-end; padding-bottom:1px;}
+.badge { background:#000; color:#fff; font-size:calc(var(--meta-sz) - 1px); font-weight:800; padding:1px 4px; border-radius:2px; margin-right:2px; display:inline-block; line-height:1.35; }
 .tag-price-wrap { display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end; min-width: 0; }
-.tag-old { font-size:10px; color:#555; margin-bottom: -2px; text-decoration: line-through; }
+.tag-old { font-size:10px; color:#555; margin-bottom: -1px; text-decoration: line-through; line-height:1.3; }
 .tag-price-container { display: flex; align-items: baseline; justify-content: flex-end; width: 100%; }
-.tag-price-slide { transition: transform 0.2s; line-height: 0.8; }
-.tag-price { font-size:var(--price-sz); font-weight:900; letter-spacing:-2px; color:#000; }
+.tag-price-slide { transition: transform 0.2s; line-height: 0.95; }
+.tag-price { font-size:var(--price-sz); font-weight:900; letter-spacing:-1px; color:#000; }
 .tag-baht-anchor { margin-left: 2px; flex-shrink: 0; z-index: 2; }
 .tag-baht-inv  { background:#000; color:#fff; font-size:10px; font-weight:800; padding:2px 4px; border-radius:2px; }
 .tag-baht-norm { font-size:11px; font-weight:800; color:#000; }
 
-.tag-mid-dual { flex: 1 1 auto; display: flex; justify-content: space-between; align-items: center; padding: 2px 2px; overflow: hidden; }
-.dual-col { display: flex; flex-direction: column; align-items: center; justify-content:center; width: 49%; }
-.dual-div { width: 1px; background: transparent; border-right: 1px dashed #000; height: 85%; }
-.dual-badge { background: #000; color: #fff; font-size: calc(var(--meta-sz) - 1px); font-weight: 800; padding: 1px 5px; border-radius: 2px; margin-bottom: 2px; text-align: center; white-space: nowrap; }
+/* dual mode A (original refined) */
+.tag-mid-dual { flex: 1 1 auto; display: flex; justify-content: space-between; align-items: center; padding: 3px 3px; overflow: hidden; gap:3px; }
+.dual-col { display: flex; flex-direction: column; align-items: center; justify-content:center; flex:1; min-width:0; }
+.dual-div { width: 1px; align-self:stretch; border-right: 1px dashed #000; margin:4px 0; }
+.dual-badge { background: #000; color: #fff; font-size: calc(var(--meta-sz) - 1px); font-weight: 800; padding: 2px 6px; border-radius: 2px; margin-bottom: 3px; text-align: center; white-space: nowrap; line-height:1.35; }
 .dual-price-row { display: flex; align-items: baseline; justify-content:center; width:100%; }
-.dual-price-val { font-size: var(--dual-price-sz); font-weight: 900; color: #000; letter-spacing: -1px; line-height: 0.9; }
+.dual-price-val { font-size: var(--dual-price-sz); font-weight: 900; color: #000; letter-spacing: 0; line-height: 1.05; }
 .dual-baht { font-size: calc(var(--meta-sz) - 1px); font-weight: 800; color: #000; margin-left: 3px; }
 
-.tag-bc-area { flex: 0 0 42px; text-align:center; display:flex; justify-content:center; align-items:center; padding:2px 0; overflow: hidden; border-top: 1px dashed #000;} 
+/* dual mode B (hero + wholesale strip) */
+.tag-mid-hero { flex:1 1 auto; display:flex; flex-direction:column; padding:2px 6px 3px; overflow:hidden; }
+.hero-top { flex:1; display:flex; align-items:center; justify-content:space-between; gap:5px; }
+.hero-meta { display:flex; flex-direction:column; font-size:var(--meta-sz); color:#000; line-height:1.35; }
+.hero-price-box { display:flex; align-items:baseline; }
+.hero-price { font-size:var(--price-sz); font-weight:900; letter-spacing:-1px; color:#000; line-height:1; }
+.hero-baht { font-size:11px; font-weight:800; margin-left:2px; }
+.wholesale-strip { background:#000; color:#fff; display:flex; align-items:center; justify-content:center; gap:6px; padding:2px 6px; margin-top:2px; border-radius:2px; }
+.ws-label { font-size:calc(var(--meta-sz) - 1px); font-weight:700; letter-spacing:.3px; }
+.ws-price { font-size:calc(var(--dual-price-sz) * 0.72); font-weight:900; line-height:1.1; }
+.ws-baht { font-size:calc(var(--meta-sz) - 1px); font-weight:700; }
+
+.tag-bc-area { flex: 0 0 42px; text-align:center; display:flex; justify-content:center; align-items:center; padding:2px 0; overflow: hidden; border-top: 1px dashed #000;}
 .tag-bc-area svg { max-width:98%; max-height:100%; }
 
 .price-tag-large { width: var(--large-w); height: var(--large-h); }
-.tag-name-area-large { flex: 0 0 45px; display:flex; align-items:center; justify-content:center; padding: 4px 10px; border-bottom: 2px solid #000; text-align: center; overflow: hidden;}
-.tag-name-large { font-weight:700; color:#000; line-height:1.15; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-wrap: balance;}
+.tag-name-area-large { flex: 0 0 46px; display:flex; align-items:center; justify-content:center; padding: 4px 10px; border-bottom: 2px solid #000; text-align: center; overflow: hidden;}
+.tag-name-large { font-weight:700; color:#000; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
 .tag-large-body { flex: 1 1 auto; display: flex; border-bottom: 1px dashed #000; overflow:hidden;}
-.tag-large-left { width: 50%; padding: 5px 10px; display: flex; flex-direction: column; justify-content: center; font-size: calc(var(--meta-sz) + 2px); font-weight: 700; color: #000; line-height: 1.5; }
+.tag-large-left { width: 50%; padding: 5px 10px; display: flex; flex-direction: column; justify-content: center; font-size: calc(var(--meta-sz) + 2px); font-weight: 700; color: #000; line-height: 1.55; }
+.tag-large-img { max-width:80%; max-height:52px; object-fit:contain; margin:2px auto; }
 .tag-large-box { border: 2px solid #000; display: inline-flex; flex-direction: column; align-items: center; margin-top: 5px; border-radius: 4px; padding: 4px 10px; align-self: flex-start; }
-.tag-large-box-title { font-size: 10px; font-weight: 800; text-transform: uppercase; line-height: 1; }
-.tag-large-box-price { font-size: calc(var(--meta-sz) + 6px); font-weight: 900; line-height: 1; margin-top: 2px; }
+.tag-large-box-title { font-size: 10px; font-weight: 800; text-transform: uppercase; line-height: 1.2; }
+.tag-large-box-price { font-size: calc(var(--meta-sz) + 6px); font-weight: 900; line-height: 1.1; margin-top: 2px; }
 .tag-large-divider { width: 1px; border-right: 1px dashed #000; }
 .tag-large-right { width: 50%; display: flex; align-items: center; justify-content: center; position: relative; }
-.tag-price-large { font-size: calc(var(--price-sz) * 1.3); font-weight: 900; letter-spacing: -2px; line-height: 0.8; color: #000; }
+.tag-price-large { font-size: calc(var(--price-sz) * 1.3); font-weight: 900; letter-spacing: -1px; line-height: 0.95; color: #000; }
 .tag-baht-large { font-size: calc(var(--meta-sz) + 6px); font-weight: 800; color: #000; margin-left: 8px; }
+.pack-icon { display:inline-block; font-size:calc(var(--meta-sz) + 2px); margin-right:3px; }
 
 @media print {
   @page { margin:0; size: auto; }
   body { background:#fff !important; color:#000 !important; overflow:visible; animation:none; }
-  body::after, .scan-beam, .sidebar { display:none !important; }
+  body::after, .scan-beam, .sidebar, .fab-top, .ws-fab-top, .modal-overlay { display:none !important; }
   .workspace { display:block; padding:0; overflow:visible; background:#fff !important; }
   .workspace::before, .workspace::after { display:none !important; }
   #print-area { width:100%; box-shadow:none !important; padding:2mm; gap:2mm; border:none !important; background:#fff !important; }
   .empty-msg { display:none !important; }
   .price-tag { border: 2px solid #000 !important; background:#fff !important; box-shadow:none !important; transform:none !important; }
-  .tag-header, .tag-ribbon, .badge, .tag-baht-inv, .dual-badge { background:#000 !important; color:#fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .tag-name, .tag-price, .tag-info, .tag-baht-norm, .tag-old, .dual-price-val, .dual-baht, .tag-large-left, .tag-price-large, .tag-baht-large, .tag-date-txt { color:#000 !important; }
+  .tag-header, .tag-ribbon, .badge, .tag-baht-inv, .dual-badge, .wholesale-strip { background:#000 !important; color:#fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .wholesale-strip * { color:#fff !important; }
+  .tag-name, .tag-price, .tag-info, .tag-baht-norm, .tag-old, .dual-price-val, .dual-baht, .tag-large-left, .tag-price-large, .tag-baht-large, .tag-date-txt, .hero-price, .hero-baht, .hero-meta { color:#000 !important; }
   .tag-name-area, .tag-name-area-large, .tag-large-box { border-color: #000 !important; }
   .tag-bc-area { border-top: 1px dashed #000 !important; }
   .tag-large-body { border-bottom: 1px dashed #000 !important; }
@@ -194,18 +263,40 @@ input[type=range].inp-slider:focus { outline: none; }
 <div class="scan-beam"></div>
 <div id="toast-container" class="toast-container"></div>
 
+<!-- SYNC CONFIRM MODAL -->
+<div class="modal-overlay" id="sync-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">⟳ PRICE SYNC DETECTED</div>
+        <div class="modal-sub" id="sync-modal-sub">พบสินค้าที่ราคาต่างจาก Sheet</div>
+      </div>
+      <button class="mb-cancel modal-btn" style="flex:0; padding:6px 12px;" onclick="App.sync.closeModal()">✕</button>
+    </div>
+    <div class="modal-selectall">
+      <input type="checkbox" id="diff-select-all" class="diff-check" checked onchange="App.sync.toggleAll(this.checked)">
+      <label for="diff-select-all" style="cursor:pointer;">เลือกทั้งหมด</label>
+    </div>
+    <div class="modal-body" id="sync-modal-body"></div>
+    <div class="modal-foot">
+      <button class="modal-btn mb-cancel" onclick="App.sync.closeModal()">ยกเลิก</button>
+      <button class="modal-btn mb-confirm" onclick="App.sync.applySelected()">✓ อัปเดตราคาที่เลือก</button>
+    </div>
+  </div>
+</div>
+
 <aside class="sidebar">
   <div class="sb-head">
-    <div class="hud-title" data-text="CYBORG // TAG-SYS">CYBORG // TAG-SYS</div>
+    <div class="hud-title">CYBORG // TAG-SYS</div>
     <div class="hud-sub">
       <span class="blink-dot"></span>
-      CLOUD DB EDITION  ·  v8.0 (LUXURY)
+      SYNC PRO EDITION · v9.0
     </div>
   </div>
 
   <div id="status-bar">INITIALIZING SYSTEM...</div>
 
-  <div class="sb-body">
+  <div class="sb-body" id="sb-body">
     <div class="panel">
       <div class="p-lbl">Scanner Uplink (AUTO)</div>
       <div id="mqtt-status" class="inp" style="text-align: center; font-family: var(--f-hud); font-weight: bold; color: var(--b); pointer-events: none;">
@@ -227,7 +318,7 @@ input[type=range].inp-slider:focus { outline: none; }
     </div>
 
     <div class="panel" style="flex-shrink:0;">
-      <div class="p-lbl">Print Queue</div>
+      <div class="p-lbl">Print Queue <span class="p-count" id="queue-count">0</span></div>
       <div class="queue-body" id="queue-ui">
         <div class="q-empty">// EMPTY QUEUE</div>
       </div>
@@ -250,7 +341,7 @@ input[type=range].inp-slider:focus { outline: none; }
           <span class="cfg-lbl">Header Text</span>
           <input class="inp" id="tag-header-text" value="ร้านวงเวียน" data-config="header">
         </div>
-        
+
         <div class="cfg-full">
           <span class="cfg-lbl">Font Module</span>
           <select class="inp" id="tag-font" data-config="font">
@@ -261,51 +352,30 @@ input[type=range].inp-slider:focus { outline: none; }
           </select>
         </div>
 
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">W (cm)</span><span id="val-tag-w" class="slider-val">5.4</span></div>
-          <input class="inp-slider" type="range" id="tag-w" value="5.4" min="2" max="15" step="0.1" data-config="w">
+        <!-- EDITABLE LABEL WORDS (ข้อ 4) -->
+        <div>
+          <span class="cfg-lbl">คำนำหน้า "ขนาด"</span>
+          <input class="inp" id="label-size" value="ขนาด" data-config="labelSize">
         </div>
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">H (cm)</span><span id="val-tag-h" class="slider-val">4.0</span></div>
-          <input class="inp-slider" type="range" id="tag-h" value="4.0" min="2" max="15" step="0.1" data-config="h">
-        </div>
-        
-        <div class="slider-row cfg-full">
-          <div class="slider-header"><span class="cfg-lbl">BARCODE HEIGHT (px)</span><span id="val-bc-h" class="slider-val">24</span></div>
-          <input class="inp-slider" type="range" id="bc-h" value="24" min="10" max="60" step="1" data-config="bcHeight">
+        <div>
+          <span class="cfg-lbl">คำนำหน้า "บรรจุ"</span>
+          <input class="inp" id="label-unit" value="บรรจุ" data-config="labelUnit">
         </div>
 
-        <div class="cfg-full"><span class="cfg-lbl" style="border-bottom:1px dashed var(--ln); padding-bottom:4px;">Master Font Scale (px)</span></div>
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">NAME</span><span id="val-g-name" class="slider-val">Auto</span></div>
-          <input class="inp-slider" type="range" id="global-name-size" value="13" min="8" max="40" step="1" data-config="globalNameSz">
-        </div>
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">PRICE 1</span><span id="val-price-sz" class="slider-val">46</span></div>
-          <input class="inp-slider" type="range" id="price-size" value="46" min="10" max="100" step="1" data-config="priceSz">
-        </div>
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">DUAL PRICE</span><span id="val-dual-sz" class="slider-val">28</span></div>
-          <input class="inp-slider" type="range" id="dual-price-size" value="28" min="10" max="80" step="1" data-config="dualSz">
-        </div>
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">META INFO</span><span id="val-meta-sz" class="slider-val">10</span></div>
-          <input class="inp-slider" type="range" id="meta-size" value="10" min="6" max="24" step="1" data-config="metaSz">
-        </div>
+        <div class="slider-row" data-slider="w"></div>
+        <div class="slider-row" data-slider="h"></div>
+        <div class="slider-row cfg-full" data-slider="bcHeight"></div>
 
-        <div class="cfg-full"><span class="cfg-lbl" style="border-bottom:1px dashed var(--ln); padding-bottom:4px;">Ribbon Config</span></div>
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">SIZE (px)</span><span id="val-rb-sz" class="slider-val">10</span></div>
-          <input class="inp-slider" type="range" id="ribbon-size" value="10" min="6" max="24" step="1" data-config="ribbonSz">
-        </div>
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">OFFSET X</span><span id="val-rb-x" class="slider-val">-32</span></div>
-          <input class="inp-slider" type="range" id="ribbon-x" value="-32" min="-100" max="100" step="1" data-config="ribbonX">
-        </div>
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">OFFSET Y</span><span id="val-rb-y" class="slider-val">15</span></div>
-          <input class="inp-slider" type="range" id="ribbon-y" value="15" min="-100" max="100" step="1" data-config="ribbonY">
-        </div>
+        <div class="cfg-full"><span class="cfg-lbl cfg-sec-lbl">Master Font Scale (px)</span></div>
+        <div class="slider-row" data-slider="globalNameSz"></div>
+        <div class="slider-row" data-slider="priceSz"></div>
+        <div class="slider-row" data-slider="dualSz"></div>
+        <div class="slider-row" data-slider="metaSz"></div>
+
+        <div class="cfg-full"><span class="cfg-lbl cfg-sec-lbl">Ribbon Config</span></div>
+        <div class="slider-row" data-slider="ribbonSz"></div>
+        <div class="slider-row" data-slider="ribbonX"></div>
+        <div class="slider-row" data-slider="ribbonY"></div>
       </div>
 
       <div class="cb-wrap" style="border-top:none; padding-top:0;">
@@ -317,23 +387,16 @@ input[type=range].inp-slider:focus { outline: none; }
     <div class="panel">
       <div class="p-lbl">LARGE LABEL CONFIG</div>
       <div class="cfg-grid">
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">LARGE W (cm)</span><span id="val-large-w" class="slider-val">11.4</span></div>
-          <input class="inp-slider" type="range" id="large-w" value="11.4" min="5" max="20" step="0.1" data-config="largeW">
-        </div>
-        <div class="slider-row">
-          <div class="slider-header"><span class="cfg-lbl">LARGE H (cm)</span><span id="val-large-h" class="slider-val">6.0</span></div>
-          <input class="inp-slider" type="range" id="large-h" value="6.0" min="3" max="15" step="0.1" data-config="largeH">
-        </div>
-        <div class="slider-row cfg-full">
-          <div class="slider-header"><span class="cfg-lbl">LARGE BC HEIGHT (px)</span><span id="val-bc-h-lrg" class="slider-val">35</span></div>
-          <input class="inp-slider" type="range" id="bc-h-lrg" value="35" min="10" max="80" step="1" data-config="bcHeightLrg">
-        </div>
+        <div class="slider-row" data-slider="largeW"></div>
+        <div class="slider-row" data-slider="largeH"></div>
+        <div class="slider-row cfg-full" data-slider="bcHeightLrg"></div>
       </div>
     </div>
   </div>
 
   <div class="sb-foot">
+    <button class="btn btn-sync" style="width:100%; flex:none;" onclick="App.sync.manualCheck()">⟳ &nbsp; SYNC & CHECK PRICES (ทั้งหมด)</button>
+    <button class="btn btn-io" style="width:100%; flex:none;" onclick="window.open(SHEET_EDIT_URL,'_blank')">📝 &nbsp; เปิด GOOGLE SHEET เพื่อแก้ราคา</button>
     <div class="btn-row">
       <button class="btn btn-io" onclick="App.state.exportQueue()">↓ EXPORT (BAK)</button>
       <button class="btn btn-io" onclick="document.getElementById('file-input').click()">↑ RESTORE</button>
@@ -343,22 +406,42 @@ input[type=range].inp-slider:focus { outline: none; }
     <button class="btn btn-clear" onclick="App.state.clearQueue()">✕ &nbsp; PURGE QUEUE</button>
   </div>
 </aside>
+<button class="fab-top" id="sidebar-fab" title="ขึ้นบนสุด">↑</button>
 
-<main class="workspace">
+<main class="workspace" id="workspace">
   <div id="print-area">
     <div class="empty-msg">// Awaiting target data //</div>
   </div>
 </main>
+<button class="ws-fab-top" id="ws-fab" title="ขึ้นบนสุด">↑</button>
 
 <script>
-/**
- * CYBORG TAG-SYS (v8.0 Auto-Sync Edition - LUXURY GOLD)
- */
+/* ============================================================
+ * CYBORG TAG-SYS v9.0 (SYNC PRO) - MQTT UNCHANGED
+ * ============================================================ */
 
-// =========================================================================
-const CLOUD_DB_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSF-0v8K7CwUzsuHEbGsXJ3Ga4c2MU6jiIYzqwrmKLCR3xBP5jgDkhBuFWQz3u7Xq3JEDJZsbYQodBX/pub?gid=857533628&single=true&output=csv"; 
+const CLOUD_DB_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSF-0v8K7CwUzsuHEbGsXJ3Ga4c2MU6jiIYzqwrmKLCR3xBP5jgDkhBuFWQz3u7Xq3JEDJZsbYQodBX/pub?gid=857533628&single=true&output=csv";
+// URL สำหรับเปิด Sheet ต้นฉบับเพื่อแก้ไขราคา (แก้เยอะๆ ที่ Sheet แล้วกด SYNC กลับมา)
+const SHEET_EDIT_URL = "https://docs.google.com/spreadsheets/d/1-s82oHNNDUjwPyrkgSWP-YO2EHgVKK52-HV_FMh_wul/edit?gid=857533628#gid=857533628";
 const AUTO_SYNC_TOPIC = "cyborg-tag-sys-wongwian-v8";
-// =========================================================================
+const AUTO_SYNC_INTERVAL = 5 * 60 * 1000; // 5 min background price check
+
+/* Slider definitions (label, min, max, step, unit, default) */
+const SLIDER_DEFS = {
+  w:            { label:'W (cm)',            min:2,   max:15,  step:0.1, def:5.4 },
+  h:            { label:'H (cm)',            min:2,   max:15,  step:0.1, def:4.0 },
+  bcHeight:     { label:'BARCODE HEIGHT',    min:10,  max:60,  step:1,   def:24 },
+  globalNameSz: { label:'NAME (0=Auto)',     min:0,   max:40,  step:1,   def:0 },
+  priceSz:      { label:'PRICE 1',           min:10,  max:100, step:1,   def:46 },
+  dualSz:       { label:'DUAL / WHOLESALE',  min:10,  max:80,  step:1,   def:28 },
+  metaSz:       { label:'META INFO',         min:6,   max:24,  step:1,   def:10 },
+  ribbonSz:     { label:'RIBBON SIZE',       min:6,   max:24,  step:1,   def:10 },
+  ribbonX:      { label:'RIBBON OFFSET X',   min:-100,max:100, step:1,   def:-32 },
+  ribbonY:      { label:'RIBBON OFFSET Y',   min:-100,max:100, step:1,   def:15 },
+  largeW:       { label:'LARGE W (cm)',      min:5,   max:20,  step:0.1, def:11.4 },
+  largeH:       { label:'LARGE H (cm)',      min:3,   max:15,  step:0.1, def:6.0 },
+  bcHeightLrg:  { label:'LARGE BC HEIGHT',   min:10,  max:80,  step:1,   def:35 },
+};
 
 const Utils = {
     escapeHTML: (str) => {
@@ -375,23 +458,23 @@ const Utils = {
             timeout = setTimeout(later, wait);
         };
     },
+    fmtPrice: (v) => {
+        const n = parseFloat(v) || 0;
+        return Number.isInteger(n) ? String(n) : n.toFixed(2);
+    },
+    priceEq: (a, b) => {
+        const na = parseFloat(a), nb = parseFloat(b);
+        if (isNaN(na) && isNaN(nb)) return true;
+        return Math.abs((na||0) - (nb||0)) < 0.001;
+    },
     extractSize: (name) => {
         if(!name) return '';
         const rx = /(\d+(?:\.\d+)?\s*(?:กิโลกรัม|กิโล|กรัม|มิลลิลิตร|มิลลิกรัม|ลิตร|ซีซี|ออนซ์|ฟุต|นิ้ว|เมตร|เซนติเมตร|มิลลิเมตร|kg\.?|g\.?|mg\.?|ml\.?|mL\.?|l\.?|L\.?|cc\.?|oz\.?|lb\.?|cm\.?|mm\.?|m\.?|กก\.?|มล\.?|ซม\.?|มม\.?))/gi;
         const m = [...name.matchAll(rx)];
         return m.length ? m[m.length-1][0].trim() : '';
     },
-    /* REVISED AUTO FONT SIZE (6 RANGES) */
     autoFontSize: (name, mode = 'standard') => {
         const len = (name || '').trim().length;
-        if(mode === 'standard' || mode === 'dual') {
-            if (len <= 10) return 14;
-            if (len <= 20) return 12;
-            if (len <= 30) return 10.5;
-            if (len <= 40) return 9.5;
-            if (len <= 50) return 8.5;
-            return 7.5; 
-        }
         if(mode === 'large') {
             if (len <= 15) return 22;
             if (len <= 30) return 18;
@@ -400,7 +483,12 @@ const Utils = {
             if (len <= 75) return 12;
             return 10;
         }
-        return 11;
+        if (len <= 10) return 14;
+        if (len <= 20) return 12;
+        if (len <= 30) return 10.5;
+        if (len <= 40) return 9.5;
+        if (len <= 50) return 8.5;
+        return 7.5;
     }
 };
 
@@ -413,9 +501,7 @@ class AudioEngine {
             if(this.ctx.state === 'suspended') this.ctx.resume();
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            
+            osc.connect(gain); gain.connect(this.ctx.destination);
             if(type === 'success') {
                 osc.type = 'sine'; osc.frequency.setValueAtTime(800, this.ctx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.1);
@@ -425,88 +511,128 @@ class AudioEngine {
                 osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, this.ctx.currentTime);
                 gain.gain.setValueAtTime(0.3, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
                 osc.start(); osc.stop(this.ctx.currentTime + 0.4);
+            } else if(type === 'alert') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(900, this.ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.25);
             }
         } catch(e) {}
     }
 }
 
 class DatabaseService {
-    constructor() { this.data = []; }
-    async sync() {
-        App.ui.setStatus('SYNCING CLOUD DB...', 'var(--o)');
-        Papa.parse(CLOUD_DB_URL, {
-            download: true, header: true, skipEmptyLines: true,
-            complete: (res) => this._processData(res.data, 'DB SYNCED'),
-            error: () => { App.ui.setStatus('DB SYNC FAILED', 'var(--r)'); App.ui.showToast('DB Sync Failed', 'error'); }
+    constructor() { this.data = []; this.index = {}; }
+    async sync(silent = false) {
+        return new Promise((resolve) => {
+            if(!silent) App.ui.setStatus('SYNCING CLOUD DB...', 'var(--o)');
+            const url = CLOUD_DB_URL + (CLOUD_DB_URL.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+            Papa.parse(url, {
+                download: true, header: false, skipEmptyLines: true,
+                complete: (res) => { this._processData(res.data, 'DB SYNCED', silent); resolve(true); },
+                error: () => { App.ui.setStatus('DB SYNC FAILED', 'var(--r)'); if(!silent) App.ui.showToast('DB Sync Failed', 'error'); resolve(false); }
+            });
         });
     }
     importCSV(event) {
         const file = event.target.files[0]; if(!file) return;
         Papa.parse(file, {
-            header: true, skipEmptyLines: true,
+            header: false, skipEmptyLines: true,
             complete: (res) => { this._processData(res.data, 'CSV LOADED'); event.target.value = ''; }
         });
     }
-    _processData(raw, successMsg) {
-        if(raw && raw.length > 0) {
-            this.data = raw.map(row => ({
-                Barcode: row.Barcode || row.barcode || row['รหัส'] || row['บาร์โค้ด'] || '',
-                ProductName: row.ProductName || row.name || row['ชื่อสินค้า'] || row['สินค้า'] || '',
-                Price: row.Price || row.price || row['ราคา'] || row['ราคาขาย'] || '',
-                Size: row.Size || row.size || row['ขนาด'] || '',
-                Unit: row.Unit || row.unit || row['หน่วย'] || ''
-            }));
-            App.ui.setStatus(`SYS OK`, 'var(--g)');
-            App.ui.showToast(`${successMsg}: ${this.data.length} ITEMS`, 'success');
-        } else {
-            App.ui.showToast('DATA SOURCE EMPTY', 'error');
+    _processData(rawRows, successMsg, silent = false) {
+        // rawRows = array of arrays (header:false). We detect column layout ourselves.
+        if(!rawRows || !rawRows.length) {
+            if(!silent) App.ui.showToast('DATA SOURCE EMPTY', 'error');
+            return;
         }
+
+        // Detect a header row: does row 0 contain known header words?
+        const HEADER_WORDS = ['barcode','price','ราคา','บาร์โค้ด','รหัส','ชื่อสินค้า','productname','name','หน่วย','unit'];
+        const first = rawRows[0].map(c => String(c||'').toLowerCase().trim());
+        const looksLikeHeader = first.some(c => HEADER_WORDS.includes(c));
+
+        // Build column index map. Default positional: A=barcode B=name C=unit D=price E=price2 F=image
+        let colBarcode=0, colName=1, colUnit=2, colPrice=3, colPrice2=4, colImage=5, colSize=-1;
+        let dataRows = rawRows;
+
+        if(looksLikeHeader) {
+            const findCol = (words) => first.findIndex(c => words.includes(c));
+            const bc = findCol(['barcode','บาร์โค้ด','รหัส']);      if(bc>=0) colBarcode=bc;
+            const nm = findCol(['productname','name','ชื่อสินค้า','สินค้า']); if(nm>=0) colName=nm;
+            const un = findCol(['unit','หน่วย']);                    if(un>=0) colUnit=un;
+            const pr = findCol(['price','ราคา','ราคาขาย']);          if(pr>=0) colPrice=pr;
+            const p2 = findCol(['price2','ราคาส่ง','ราคายกลัง']);     if(p2>=0) colPrice2=p2;
+            const im = findCol(['image','รูป','รูปภาพ','imageurl','img']); if(im>=0) colImage=im;
+            const sz = findCol(['size','ขนาด']);                     if(sz>=0) colSize=sz;
+            dataRows = rawRows.slice(1); // drop header row
+        }
+
+        const g = (row, idx) => (idx>=0 && row[idx] !== undefined) ? String(row[idx]).trim() : '';
+
+        this.data = dataRows.map(row => ({
+            Barcode: g(row, colBarcode),
+            ProductName: g(row, colName),
+            Unit: g(row, colUnit),
+            Price: g(row, colPrice),
+            Price2: g(row, colPrice2),
+            Image: g(row, colImage),
+            Size: colSize>=0 ? g(row, colSize) : ''
+        })).filter(p => p.Barcode);
+
+        this.index = {};
+        this.data.forEach(p => { this.index[p.Barcode] = p; });
+        App.ui.setStatus(`SYS OK · ${this.data.length} ITEMS`, 'var(--g)');
+        if(!silent) App.ui.showToast(`${successMsg}: ${this.data.length} ITEMS`, 'success');
     }
-    find(code) { return this.data.find(x => String(x.Barcode) === String(code)); }
+    find(code) {
+        const c = String(code).trim();
+        if(this.index[c]) return this.index[c];
+        // tolerate leading-zero differences between queue and sheet
+        const stripped = c.replace(/^0+/, '');
+        for(const k in this.index) {
+            if(k.replace(/^0+/, '') === stripped) return this.index[k];
+        }
+        return this.data.find(x => String(x.Barcode) === c);
+    }
     search(query) {
         const q = query.toLowerCase().trim(); if(!q) return [];
         return this.data.filter(p => String(p.ProductName || '').toLowerCase().includes(q) || String(p.Barcode || '').includes(q)).slice(0, 12);
     }
 }
 
+/* MQTT — UNCHANGED from original */
 class ScannerService {
     constructor() { this.client = null; }
     connect() {
         const mqttBox = document.getElementById('mqtt-status');
-        
         if(this.client) this.client.end();
         this.client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-        
-        this.client.on('connect', () => { 
-            this.client.subscribe(AUTO_SYNC_TOPIC); 
+
+        this.client.on('connect', () => {
+            this.client.subscribe(AUTO_SYNC_TOPIC);
             mqttBox.innerText = `UPLINK SECURED (AUTO)`;
             mqttBox.style.color = "var(--g)";
             mqttBox.style.borderColor = "rgba(76,175,80,.3)";
         });
-        
         this.client.on('offline', () => {
             mqttBox.innerText = `[ UPLINK LOST ] RETRYING...`;
             mqttBox.style.color = "var(--r)";
             mqttBox.style.borderColor = "var(--r)";
         });
-
         this.client.on('message', (topic, msg) => {
             if(topic !== AUTO_SYNC_TOPIC) return;
-            
-            let code = '';
-            let exp = '';
-            try { 
-                const d = JSON.parse(msg.toString()); 
+            let code = ''; let exp = '';
+            try {
+                const d = JSON.parse(msg.toString());
                 code = d.barcode || d.Barcode || '';
                 exp = d.exp || d.Exp || '';
-                
                 if(!code) {
                     const key = Object.keys(d).find(k => k.toLowerCase() === 'barcode');
                     if(key) code = d[key];
                 }
-            } catch(e) { 
-                code = msg.toString(); 
-            }
+            } catch(e) { code = msg.toString(); }
             App.state.addFromBarcode(code, exp);
         });
     }
@@ -516,15 +642,22 @@ class StateManager {
     constructor() { this.queue = []; this.config = {}; this.loadFromStorage(); }
     loadFromStorage() {
         try {
-            const savedQ = localStorage.getItem('wongwianQueue');
-            if(savedQ) this.queue = JSON.parse(savedQ).map(q => ({...q, Mfg: q.Mfg||'', Exp: q.Exp||''}));
-            const savedC = localStorage.getItem('wongwianConfig');
+            const savedQ = localStorage.getItem('wongwianQueue_v9') || localStorage.getItem('wongwianQueue');
+            if(savedQ) this.queue = JSON.parse(savedQ).map(q => this._normalize(q));
+            const savedC = localStorage.getItem('wongwianConfig_v9') || localStorage.getItem('wongwianConfig');
             if(savedC) this.config = JSON.parse(savedC);
         } catch(e) { }
     }
+    _normalize(q) {
+        return {
+            Mfg:'', Exp:'', Ribbon:'', Unit2:'', Price2:'', PriceOffsetX:0, Image:'',
+            DualStyle:'A', PackType:'', PriceDiff:null,
+            ...q
+        };
+    }
     saveToStorage() {
-        localStorage.setItem('wongwianConfig', JSON.stringify(this.config));
-        localStorage.setItem('wongwianQueue', JSON.stringify(this.queue));
+        localStorage.setItem('wongwianConfig_v9', JSON.stringify(this.config));
+        localStorage.setItem('wongwianQueue_v9', JSON.stringify(this.queue));
     }
     updateConfig(key, value) {
         this.config[key] = value; this.saveToStorage(); App.ui.applyCSSVars(); App.ui.debouncedRenderPreview();
@@ -532,11 +665,15 @@ class StateManager {
     updateQueueItem(index, field, value) {
         this.queue[index][field] = value;
         if(field === 'ProductName') {
-            const globalSize = this.config.globalNameSz;
-            this.queue[index].NameFontSize = globalSize ? parseInt(globalSize) : Utils.autoFontSize(value, this.queue[index].TagMode);
+            const globalSize = parseInt(this.config.globalNameSz);
+            this.queue[index].NameFontSize = (globalSize && globalSize > 0) ? globalSize : Utils.autoFontSize(value, this.queue[index].TagMode);
         }
-        this.saveToStorage(); App.ui.debouncedRenderPreview();
+        if(field === 'Price') this.queue[index].PriceDiff = null; // manual edit clears flag
+        this.saveToStorage();
+        if(field === 'TagMode' || field === 'DualStyle') App.ui.renderFull();
+        else App.ui.debouncedRenderPreview();
     }
+    setDualStyle(index, style) { this.queue[index].DualStyle = style; this.saveToStorage(); App.ui.renderFull(); }
     addFromBarcode(code, exp = '') {
         code = String(code).trim(); if(!code) return;
         const existingIdx = this.queue.findIndex(i => i.Barcode === code);
@@ -545,23 +682,22 @@ class StateManager {
         if(existingIdx !== -1) {
             this.queue[existingIdx].PrintQty++;
             if (exp) this.queue[existingIdx].Exp = exp;
-            
             App.ui.showToast(`+1 · ${this.queue[existingIdx].ProductName}`, 'success');
             App.audio.play('success');
         } else {
             const name = product ? (product.ProductName || 'รหัส: '+code) : 'รหัส: '+code;
             const size = product ? (product.Size || Utils.extractSize(name)) : Utils.extractSize(name);
-            const globalSize = this.config.globalNameSz;
-            
-            this.queue.push({
-                Barcode: code, ProductName: name, NameFontSize: globalSize ? parseInt(globalSize) : Utils.autoFontSize(name),
+            const globalSize = parseInt(this.config.globalNameSz);
+            this.queue.push(this._normalize({
+                Barcode: code, ProductName: name,
+                NameFontSize: (globalSize && globalSize > 0) ? globalSize : Utils.autoFontSize(name),
                 TagMode: 'standard', OldPrice: '', Price: product ? (product.Price || '0.00') : '0.00', PriceOffsetX: 0,
-                Size: size, Unit: product ? (product.Unit || 'ชิ้น') : 'ชิ้น', Ribbon: '', Unit2: 'บรรจุ 12 ขวด ยกลัง', Price2: '', 
-                Mfg: '', Exp: exp, 
-                PrintQty: 1
-            });
-            
-            if(product) { App.ui.showToast(`TARGET ACQUIRED · ${name}`, 'success'); App.audio.play('success'); } 
+                Size: size, Unit: product ? (product.Unit || 'ชิ้น') : 'ชิ้น', Ribbon: '',
+                Unit2: 'ยกลัง', Price2: product ? (product.Price2 || '') : '',
+                Image: product ? (product.Image || '') : '',
+                Mfg: '', Exp: exp, PrintQty: 1
+            }));
+            if(product) { App.ui.showToast(`TARGET ACQUIRED · ${name}`, 'success'); App.audio.play('success'); }
             else { App.ui.showToast(`UNKNOWN TARGET · MANUAL ENTRY REQ`, 'error'); App.audio.play('error'); }
         }
         this.saveToStorage(); App.ui.renderFull();
@@ -578,49 +714,205 @@ class StateManager {
     importQueue(e) {
         const file = e.target.files[0]; if(!file) return;
         const r = new FileReader();
-        r.onload = ev => { 
-            try { 
-                const d = JSON.parse(ev.target.result); 
-                this.queue = Array.isArray(d) ? d : (d.items || []).map(x => ({...x, PrintQty: x.Qty || 1, TagMode: x.TagMode || 'standard'})); 
-                this.saveToStorage(); App.ui.renderFull(); App.ui.showToast('DATA IMPORTED', 'success'); 
-            } catch { App.ui.showToast('CORRUPTED DATA', 'error'); } 
+        r.onload = ev => {
+            try {
+                const d = JSON.parse(ev.target.result);
+                const arr = Array.isArray(d) ? d : (d.items || []).map(x => ({...x, PrintQty: x.Qty || 1, TagMode: x.TagMode || 'standard'}));
+                this.queue = arr.map(x => this._normalize(x));
+                this.saveToStorage(); App.ui.renderFull(); App.ui.showToast('DATA IMPORTED', 'success');
+            } catch { App.ui.showToast('CORRUPTED DATA', 'error'); }
         };
         r.readAsText(file); e.target.value = '';
     }
+}
+
+/* ============ PRICE SYNC SERVICE (ข้อ 1) ============ */
+class SyncService {
+    constructor() { this.pendingDiffs = []; this.autoTimer = null; }
+
+    // Compare queue prices to DB; returns list of diffs
+    computeDiffs() {
+        const diffs = [];
+        App.state.queue.forEach((item, idx) => {
+            const p = App.database.find(item.Barcode);
+            if(!p) return;
+            const dbPrice = p.Price;
+            if(dbPrice === '' || dbPrice === undefined || dbPrice === null) return;
+            if(!Utils.priceEq(item.Price, dbPrice)) {
+                diffs.push({
+                    idx, barcode: item.Barcode, name: item.ProductName,
+                    oldPrice: item.Price, newPrice: dbPrice,
+                    // extra fields from sheet that will also update on confirm
+                    newPrice2: p.Price2 || '', newUnit: p.Unit || '', newImage: p.Image || ''
+                });
+            }
+        });
+        return diffs;
+    }
+
+    // Flag items inline (red badge) without opening modal
+    flagInline(diffs) {
+        App.state.queue.forEach(i => i.PriceDiff = null);
+        diffs.forEach(d => { App.state.queue[d.idx].PriceDiff = d.newPrice; });
+        App.state.saveToStorage();
+        App.ui.renderQueueList();
+    }
+
+    async manualCheck() {
+        if(!App.state.queue.length) {
+            App.ui.showToast('⚠ ยังไม่มีป้ายใน QUEUE — สแกน/ค้นหาสินค้าเข้ามาก่อน', 'error');
+            return;
+        }
+        App.ui.showToast('SYNCING & CHECKING...', 'info');
+        await App.database.sync(true);
+        const diffs = this.computeDiffs();
+        if(!diffs.length) { App.ui.showToast('ทุกป้ายราคาตรงกับ Sheet แล้ว ✓', 'success'); App.ui.renderQueueList(); return; }
+        this.openModal(diffs);
+    }
+
+    async autoCheck() {
+        if(!App.state.queue.length) return;
+        await App.database.sync(true);
+        const diffs = this.computeDiffs();
+        if(!diffs.length) return;
+        this.flagInline(diffs);
+        App.audio.play('alert');
+        App.ui.showToast(`⚠ พบ ${diffs.length} รายการราคาเปลี่ยน · กด SYNC เพื่อดู`, 'error');
+    }
+
+    startAuto() {
+        if(this.autoTimer) clearInterval(this.autoTimer);
+        this.autoTimer = setInterval(() => this.autoCheck(), AUTO_SYNC_INTERVAL);
+    }
+
+    openModal(diffs) {
+        this.pendingDiffs = diffs;
+        const body = document.getElementById('sync-modal-body');
+        document.getElementById('sync-modal-sub').innerText = `พบ ${diffs.length} รายการที่ราคาต่างจาก Sheet`;
+        body.innerHTML = '';
+        diffs.forEach((d, i) => {
+            const row = document.createElement('div');
+            row.className = 'diff-row';
+            row.innerHTML = `
+                <input type="checkbox" class="diff-check" data-i="${i}" checked>
+                <div>
+                    <div class="diff-name">${Utils.escapeHTML(d.name)}</div>
+                    <div class="diff-bc">${Utils.escapeHTML(d.barcode)}</div>
+                </div>
+                <div class="diff-prices">
+                    <span class="diff-old">${Utils.fmtPrice(d.oldPrice)}</span>
+                    <span class="diff-arrow">→</span>
+                    <span class="diff-new">${Utils.fmtPrice(d.newPrice)}</span>
+                </div>`;
+            body.appendChild(row);
+        });
+        document.getElementById('diff-select-all').checked = true;
+        document.getElementById('sync-modal').classList.add('show');
+        App.audio.play('alert');
+    }
+
+    toggleAll(checked) {
+        document.querySelectorAll('#sync-modal-body .diff-check').forEach(c => c.checked = checked);
+    }
+
+    applySelected() {
+        const checks = document.querySelectorAll('#sync-modal-body .diff-check');
+        let count = 0;
+        checks.forEach(c => {
+            if(c.checked) {
+                const d = this.pendingDiffs[parseInt(c.dataset.i)];
+                if(d) {
+                    App.state.queue[d.idx].Price = d.newPrice;
+                    App.state.queue[d.idx].PriceDiff = null;
+                    count++;
+                }
+            }
+        });
+        App.state.saveToStorage();
+        App.ui.renderFull();
+        this.closeModal();
+        App.ui.showToast(`อัปเดตราคา ${count} รายการเรียบร้อย ✓`, 'success');
+        App.audio.play('success');
+    }
+
+    closeModal() { document.getElementById('sync-modal').classList.remove('show'); this.pendingDiffs = []; }
 }
 
 class UIController {
     constructor() {
         this.bcIdx = 0; this.selectedTagIndex = -1;
         this.debouncedRenderPreview = Utils.debounce(() => this.renderPreview(), 250);
+        this.buildSliders();
         this.bindEvents();
+        this.initFabs();
     }
     setStatus(txt, color='var(--txt)') {
         const el = document.getElementById('status-bar');
         if(el) { el.textContent = txt.toUpperCase(); el.style.color = color; }
     }
-    /* NEW TOAST NOTIFICATION SYSTEM */
     showToast(msg, type = 'info') {
         const container = document.getElementById('toast-container');
         if (!container) return;
         const toast = document.createElement('div');
         toast.className = 'toast-msg';
-        
         let borderColor = 'var(--gold)';
         if(type === 'success') borderColor = 'var(--g)';
         if(type === 'error') borderColor = 'var(--r)';
-        
         toast.style.borderLeftColor = borderColor;
         toast.innerHTML = msg;
         container.appendChild(toast);
-        
         requestAnimationFrame(() => toast.classList.add('show'));
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
+        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3200);
     }
-    /* PRESET LOGIC */
+
+    /* Build stepper sliders (ข้อ 2: easy adjust with -/+ and number box) */
+    buildSliders() {
+        document.querySelectorAll('[data-slider]').forEach(row => {
+            const key = row.dataset.slider;
+            const def = SLIDER_DEFS[key];
+            if(!def) return;
+            const cur = (App.state.config[key] !== undefined) ? App.state.config[key] : def.def;
+            row.innerHTML = `
+                <div class="slider-header"><span class="cfg-lbl">${def.label}</span><span class="slider-val" id="val-${key}">${cur}</span></div>
+                <div class="stepper">
+                    <button class="step-btn" data-act="dec" data-key="${key}">−</button>
+                    <input type="range" min="${def.min}" max="${def.max}" step="${def.step}" value="${cur}" data-config="${key}" id="rng-${key}">
+                    <input type="text" inputmode="decimal" class="step-num" value="${cur}" data-key="${key}" id="num-${key}">
+                    <button class="step-btn" data-act="inc" data-key="${key}">+</button>
+                </div>`;
+        });
+
+        // stepper button + number box handlers
+        document.querySelectorAll('.step-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.key; const def = SLIDER_DEFS[key];
+                const rng = document.getElementById('rng-'+key);
+                let v = parseFloat(rng.value) || def.def;
+                v += (btn.dataset.act === 'inc' ? def.step : -def.step);
+                v = Math.min(def.max, Math.max(def.min, +v.toFixed(2)));
+                this._setSliderValue(key, v);
+            });
+        });
+        document.querySelectorAll('.step-num').forEach(num => {
+            num.addEventListener('change', () => {
+                const key = num.dataset.key; const def = SLIDER_DEFS[key];
+                let v = parseFloat(num.value);
+                if(isNaN(v)) v = def.def;
+                v = Math.min(def.max, Math.max(def.min, v));
+                this._setSliderValue(key, v);
+            });
+        });
+    }
+    _setSliderValue(key, v) {
+        const rng = document.getElementById('rng-'+key);
+        const num = document.getElementById('num-'+key);
+        const val = document.getElementById('val-'+key);
+        if(rng) rng.value = v;
+        if(num) num.value = v;
+        if(val) val.innerText = v;
+        App.state.updateConfig(key, v);
+    }
+
     applyPreset(size) {
         const presets = {
             'S': { w: 3.0, h: 2.5, bcHeight: 18 },
@@ -630,49 +922,37 @@ class UIController {
         };
         const p = presets[size];
         if(p) {
-            for(const [k, v] of Object.entries(p)) {
-                App.state.updateConfig(k, v);
-                const inputEl = document.querySelector(`[data-config="${k}"]`);
-                if(inputEl) {
-                    inputEl.value = v;
-                    const valEl = document.getElementById(`val-${inputEl.id}`);
-                    if(valEl) valEl.innerText = v;
-                }
-            }
+            for(const [k, v] of Object.entries(p)) this._setSliderValue(k, v);
             this.showToast(`PRESET [${size}] APPLIED`, 'success');
         }
     }
+
     bindEvents() {
+        // config inputs that aren't sliders (text/select/checkbox) + range live update
         document.querySelectorAll('[data-config]').forEach(el => {
             const key = el.dataset.config;
             if(App.state.config[key] !== undefined) {
                 if(el.type === 'checkbox') el.checked = App.state.config[key];
-                else el.value = App.state.config[key];
-                
-                // Set initial slider visual values
-                if(el.type === 'range') {
-                    const valEl = document.getElementById(`val-${el.id}`);
-                    if(valEl) valEl.innerText = el.value;
-                }
+                else if(el.type !== 'range') el.value = App.state.config[key];
             }
             el.addEventListener('input', (e) => {
                 const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-                App.state.updateConfig(key, val);
-                
-                // Update slider visual values live
                 if(e.target.type === 'range') {
-                    const valEl = document.getElementById(`val-${e.target.id}`);
+                    const num = document.getElementById('num-'+key);
+                    const valEl = document.getElementById('val-'+key);
+                    if(num) num.value = e.target.value;
                     if(valEl) valEl.innerText = e.target.value;
                 }
+                App.state.updateConfig(key, val);
             });
         });
+
         const searchInp = document.getElementById('search-input');
-        if(searchInp) { searchInp.addEventListener('input', (e) => this.renderSearchDrop(e.target.value)); }
-        
-        document.addEventListener('click', e => { 
+        if(searchInp) searchInp.addEventListener('input', (e) => this.renderSearchDrop(e.target.value));
+
+        document.addEventListener('click', e => {
             const drop = document.getElementById('search-drop');
-            if(drop && !e.target.closest('.search-container')) drop.style.display = 'none'; 
-            
+            if(drop && !e.target.closest('.search-container')) drop.style.display = 'none';
             if (!e.target.closest('.price-tag')) {
                 document.querySelectorAll('.price-tag').forEach(t => t.classList.remove('selected'));
                 document.querySelectorAll('.q-item').forEach(q => q.classList.remove('selected'));
@@ -680,49 +960,93 @@ class UIController {
             }
         });
     }
+
+    /* Scroll-to-top FABs (ข้อ 6) */
+    initFabs() {
+        const sb = document.getElementById('sb-body');
+        const sbFab = document.getElementById('sidebar-fab');
+        sb.addEventListener('scroll', () => { sbFab.classList.toggle('show', sb.scrollTop > 300); });
+        sbFab.addEventListener('click', () => sb.scrollTo({ top: 0, behavior: 'smooth' }));
+
+        const ws = document.getElementById('workspace');
+        const wsFab = document.getElementById('ws-fab');
+        ws.addEventListener('scroll', () => { wsFab.classList.toggle('show', ws.scrollTop > 300); });
+        wsFab.addEventListener('click', () => ws.scrollTo({ top: 0, behavior: 'smooth' }));
+    }
+
     applyCSSVars() {
         const c = App.state.config;
-        const set = (prop, val, suffix='') => { if(val !== undefined) document.documentElement.style.setProperty(prop, val+suffix); };
-        
+        const set = (prop, val, suffix='') => { if(val !== undefined && val !== '') document.documentElement.style.setProperty(prop, val+suffix); };
         set('--tag-w', c.w, 'cm'); set('--tag-h', c.h, 'cm'); set('--large-w', c.largeW, 'cm'); set('--large-h', c.largeH, 'cm');
         set('--price-sz', c.priceSz, 'px'); set('--dual-price-sz', c.dualSz, 'px'); set('--meta-sz', c.metaSz || 10, 'px');
-        set('--ribbon-f-sz', c.ribbonSz || 10, 'px'); set('--ribbon-x', c.ribbonX || -32, 'px'); set('--ribbon-y', c.ribbonY || 15, 'px');
+        set('--ribbon-f-sz', c.ribbonSz || 10, 'px'); set('--ribbon-x', c.ribbonX ?? -32, 'px'); set('--ribbon-y', c.ribbonY ?? 15, 'px');
         set('--f-tag', c.font);
-        
-        if(c.globalNameSz) { App.state.queue.forEach(q => q.NameFontSize = parseInt(c.globalNameSz)); }
+        const gs = parseInt(c.globalNameSz);
+        if(gs && gs > 0) App.state.queue.forEach(q => q.NameFontSize = gs);
     }
+
     renderSearchDrop(query) {
         const drop = document.getElementById('search-drop'); drop.innerHTML = '';
         if(!query) { drop.style.display = 'none'; return; }
         const hits = App.database.search(query); drop.style.display = 'block';
         if(!hits.length) { drop.innerHTML = '<div class="s-item"><span class="s-meta" style="color:var(--r);">✕ NO TARGETS FOUND</span></div>'; return; }
-
         hits.forEach(p => {
             const d = document.createElement('div'); d.className = 's-item';
-            d.innerHTML = `<div class="s-name">${Utils.escapeHTML(p.ProductName)}</div><div class="s-meta">${Utils.escapeHTML(p.Barcode)} · ${Utils.escapeHTML(p.Price)} THB</div>`;
+            const thumb = p.Image ? `<img class="s-thumb" src="${Utils.escapeHTML(p.Image)}" onerror="this.style.display='none'">` : '';
+            d.innerHTML = `${thumb}<div><div class="s-name">${Utils.escapeHTML(p.ProductName)}</div><div class="s-meta">${Utils.escapeHTML(p.Barcode)} · ${Utils.escapeHTML(p.Price)} THB</div></div>`;
             d.onclick = () => { App.state.addFromBarcode(p.Barcode); document.getElementById('search-input').value = ''; drop.style.display = 'none'; };
             drop.appendChild(d);
         });
     }
-    renderFull() { this.renderQueueList(); this.renderPreview(); }
+
+    renderFull() { this.renderQueueList(); this.renderPreview(); this.updateCount(); }
+    updateCount() {
+        const el = document.getElementById('queue-count');
+        if(el) el.innerText = App.state.queue.reduce((s,i)=>s+(i.PrintQty||1),0);
+    }
+
     renderQueueList() {
         const el = document.getElementById('queue-ui');
-        if(!App.state.queue.length){ el.innerHTML = '<div class="q-empty">// EMPTY QUEUE</div>'; return; }
+        if(!App.state.queue.length){ el.innerHTML = '<div class="q-empty">// EMPTY QUEUE</div>'; this.updateCount(); return; }
         el.innerHTML = '';
-        
+
         App.state.queue.forEach((item, i) => {
             const fs = item.NameFontSize || Utils.autoFontSize(item.ProductName, item.TagMode);
-            const d = document.createElement('div'); d.className = 'q-item'; d.id = `q-item-${i}`;
-            
+            const d = document.createElement('div');
+            d.className = 'q-item' + (item.PriceDiff != null ? ' price-diff' : '');
+            d.id = `q-item-${i}`;
+
+            const diffFlag = item.PriceDiff != null
+                ? `<div class="q-diff-flag" onclick="App.sync.acceptSingle(${i})" title="กดเพื่อรับราคาใหม่">⚠ Sheet: <b>${Utils.fmtPrice(item.PriceDiff)}</b> (ปัจจุบัน ${Utils.fmtPrice(item.Price)}) — กดรับ</div>`
+                : '';
+
+            // Mode buttons
+            const modeBtns = `
+                <div class="mode-btns" style="margin-bottom:6px;">
+                    <div class="mode-btn ${item.TagMode==='standard'?'active':''}" onclick="App.state.updateQueueItem(${i},'TagMode','standard')">⭐ ปกติ</div>
+                    <div class="mode-btn ${item.TagMode==='dual'?'active':''}" onclick="App.state.updateQueueItem(${i},'TagMode','dual')">⚡ ราคาส่ง</div>
+                    <div class="mode-btn ${item.TagMode==='large'?'active':''}" onclick="App.state.updateQueueItem(${i},'TagMode','large')">🏷️ ป้ายใหญ่</div>
+                </div>`;
+
+            // Dual style switcher (only in dual mode)
+            const dualStyleRow = item.TagMode === 'dual' ? `
+                <div class="mode-btns" style="margin-bottom:6px; grid-template-columns:1fr 1fr;">
+                    <div class="mode-btn ${item.DualStyle!=='B'?'active':''}" onclick="App.state.setDualStyle(${i},'A')">แบบ A: สองช่อง</div>
+                    <div class="mode-btn ${item.DualStyle==='B'?'active':''}" onclick="App.state.setDualStyle(${i},'B')">แบบ B: เด่น+แถบส่ง</div>
+                </div>` : '';
+
+            const thumb = item.Image
+                ? `<img class="q-thumb-mini" src="${Utils.escapeHTML(item.Image)}" onerror="this.style.opacity=.2" title="รูปสินค้า">`
+                : '';
+
             d.innerHTML = `
+            ${diffFlag}
+            ${modeBtns}
+            ${dualStyleRow}
             <div class="q-row">
-                <select class="qi sm mode-select" style="width:115px; text-align:left; padding-left:4px;" onchange="App.state.updateQueueItem(${i},'TagMode',this.value)">
-                <option value="standard" ${item.TagMode==='standard'?'selected':''}>⭐ ปกติ (ปลีก)</option>
-                <option value="dual" ${item.TagMode==='dual'?'selected':''}>⚡ ราคาส่ง</option>
-                <option value="large" ${item.TagMode==='large'?'selected':''}>🏷️ ป้ายใหญ่ (ลัง)</option>
-                </select>
+                ${thumb}
                 <input class="qi name" value="${Utils.escapeHTML(item.ProductName)}" oninput="App.state.updateQueueItem(${i},'ProductName',this.value)" placeholder="ชื่อสินค้า">
-                <input class="qi sm" type="number" value="${fs}" oninput="App.state.updateQueueItem(${i},'NameFontSize',+this.value)" title="ขนาดฟอนต์">
+                <input class="qi sm" type="number" value="${fs}" oninput="App.state.updateQueueItem(${i},'NameFontSize',+this.value)" title="ขนาดฟอนต์ชื่อ">
             </div>
 
             <div class="q-row">
@@ -731,16 +1055,21 @@ class UIController {
                 <span class="qi-lbl" title="เลื่อนราคา (px)">↔</span>
                 <input class="qi sm" type="number" value="${item.PriceOffsetX || 0}" oninput="App.state.updateQueueItem(${i},'PriceOffsetX',+this.value)" placeholder="0">
             </div>
-            
+
             <div class="q-row" style="border-left: 2px solid var(--b); padding-left:4px;">
-                <input class="qi price2" value="${Utils.escapeHTML(item.Unit2||'')}" oninput="App.state.updateQueueItem(${i},'Unit2',this.value)" placeholder="หน่วยรอง (เช่น ยกลัง)">
-                <input class="qi price2" type="number" step=".01" value="${item.Price2||''}" oninput="App.state.updateQueueItem(${i},'Price2',this.value)" placeholder="ราคารอง">
+                <input class="qi price2" value="${Utils.escapeHTML(item.Unit2||'')}" oninput="App.state.updateQueueItem(${i},'Unit2',this.value)" placeholder="ป้ายราคาส่ง (เช่น ยกลัง)">
+                <input class="qi price2" type="number" step=".01" value="${item.Price2||''}" oninput="App.state.updateQueueItem(${i},'Price2',this.value)" placeholder="ราคาส่ง">
             </div>
 
             <div class="q-row">
                 <input class="qi" value="${Utils.escapeHTML(item.Size||'')}" oninput="App.state.updateQueueItem(${i},'Size',this.value)" placeholder="ขนาด">
                 <input class="qi" value="${Utils.escapeHTML(item.Unit)}" oninput="App.state.updateQueueItem(${i},'Unit',this.value)" placeholder="หน่วยหลัก">
                 <input class="qi" value="${Utils.escapeHTML(item.Ribbon||'')}" oninput="App.state.updateQueueItem(${i},'Ribbon',this.value)" placeholder="ริบบิ้นขวาบน" style="border-color:rgba(212,175,55,.2)">
+            </div>
+
+            <div class="q-row">
+                <input class="qi" value="${Utils.escapeHTML(item.Image||'')}" oninput="App.state.updateQueueItem(${i},'Image',this.value)" placeholder="URL รูปสินค้า (ไม่บังคับ)" style="border-color:rgba(76,175,80,.2); color:var(--g); font-size:11px;">
+                <input class="qi sm" style="width:70px;" value="${Utils.escapeHTML(item.PackType||'')}" oninput="App.state.updateQueueItem(${i},'PackType',this.value)" placeholder="แพ็ค/ลัง" title="ไอคอนบอกแพ็ค เช่น ยกลัง, แพ็ค 6">
             </div>
 
             <div class="q-row" style="border-left: 2px solid var(--g); padding-left:4px;">
@@ -759,42 +1088,47 @@ class UIController {
             const qItem = document.getElementById(`q-item-${this.selectedTagIndex}`);
             if (qItem) qItem.classList.add('selected');
         }
+        this.updateCount();
     }
+
     renderPreview() {
         const area = document.getElementById('print-area');
-        const header = Utils.escapeHTML(App.state.config.header || ' ');
-        const invBaht = App.state.config.invertBaht !== false;
-        
-        // Setup Barcode Heights
-        const bcHeightStd = App.state.config.bcHeight || 24;
-        const bcHeightLrg = App.state.config.bcHeightLrg || 35;
-        
+        const c = App.state.config;
+        const header = Utils.escapeHTML(c.header || ' ');
+        const invBaht = c.invertBaht !== false;
+        const LBL_SIZE = Utils.escapeHTML(c.labelSize || 'ขนาด');
+        const LBL_UNIT = Utils.escapeHTML(c.labelUnit || 'บรรจุ');
+        const bcHeightStd = c.bcHeight || 24;
+        const bcHeightLrg = c.bcHeightLrg || 35;
+
         if(!area) return;
         area.innerHTML = '';
-        
-        if(!App.state.queue.length){ 
-            area.innerHTML = '<div class="empty-msg">// Awaiting target data //</div>'; 
-            return; 
-        }
-        
+        if(!App.state.queue.length){ area.innerHTML = '<div class="empty-msg">// Awaiting target data //</div>'; return; }
+
         const bcs = [];
         App.state.queue.forEach((item, index) => {
             for(let k = 0; k < item.PrintQty; k++){
                 this.bcIdx++; const sid = `bc-${this.bcIdx}`;
-                const rawP = parseFloat(item.Price) || 0; const pDisp = Number.isInteger(rawP) ? rawP : rawP.toFixed(2);
-                
+                const pDisp = Utils.fmtPrice(item.Price);
+
                 let oldHTML = '';
                 if(item.OldPrice && parseFloat(item.OldPrice) > 0){
-                    const ro = parseFloat(item.OldPrice);
-                    oldHTML = `<div class="tag-old">ปกติ <del>${Number.isInteger(ro) ? ro : ro.toFixed(2)}</del></div>`;
+                    oldHTML = `<div class="tag-old">ปกติ <del>${Utils.fmtPrice(item.OldPrice)}</del></div>`;
                 }
-                
-                const safeSize = Utils.escapeHTML(item.Size?.trim()); const safeUnit = Utils.escapeHTML(item.Unit || 'ชิ้น');
-                const safeUnit2 = Utils.escapeHTML(item.Unit2 || ''); const safeRibbon = Utils.escapeHTML(item.Ribbon?.trim());
-                const safeName = Utils.escapeHTML(item.ProductName); const safeMfg = Utils.escapeHTML(item.Mfg); const safeExp = Utils.escapeHTML(item.Exp);
 
-                const sizeHTML = safeSize ? `<div><span class="badge">ขนาด</span>${safeSize}</div>` : '';
-                const unitHTML = `<div><span class="badge">บรรจุ</span>1 ${safeUnit}</div>`;
+                const safeSize = Utils.escapeHTML((item.Size||'').trim());
+                const safeUnit = Utils.escapeHTML(item.Unit || 'ชิ้น');
+                const safeUnit2 = Utils.escapeHTML(item.Unit2 || '');
+                const safeRibbon = Utils.escapeHTML((item.Ribbon||'').trim());
+                const safeName = Utils.escapeHTML(item.ProductName);
+                const safeMfg = Utils.escapeHTML(item.Mfg);
+                const safeExp = Utils.escapeHTML(item.Exp);
+                const safePack = Utils.escapeHTML((item.PackType||'').trim());
+                const imgURL = (item.Image||'').trim();
+
+                const sizeHTML = safeSize ? `<div><span class="badge">${LBL_SIZE}</span>${safeSize}</div>` : '';
+                const unitHTML = `<div><span class="badge">${LBL_UNIT}</span>1 ${safeUnit}</div>`;
+                const packHTML = safePack ? `<div><span class="pack-icon">📦</span>${safePack}</div>` : '';
                 const ribbonHTML = safeRibbon ? `<div class="tag-ribbon">${safeRibbon}</div>` : '';
                 const xOffset = item.PriceOffsetX || 0;
                 const bahtHTML = invBaht ? `<span class="tag-baht-inv">บาท</span>` : `<span class="tag-baht-norm">บาท</span>`;
@@ -807,44 +1141,62 @@ class UIController {
                     dateHTML += `</div>`;
                 }
 
-                let tagMiddleHTML = ''; let tagClass = 'price-tag-normal'; 
+                let tagMiddleHTML = ''; let tagClass = 'price-tag-normal';
 
                 if(item.TagMode === 'standard' || !item.TagMode) {
+                    const imgSide = imgURL ? `<div class="tag-img-side"><img src="${Utils.escapeHTML(imgURL)}" onerror="this.parentNode.style.display='none'"></div>` : '';
                     tagMiddleHTML = `
                         <div class="tag-name-area"><div class="tag-name" style="font-size:${item.NameFontSize||13}px">${safeName}</div></div>
                         <div class="tag-mid-std">
-                            <div class="tag-info">${sizeHTML}${unitHTML}${dateHTML}</div>
+                            ${imgSide}
+                            <div class="tag-info">${sizeHTML}${unitHTML}${packHTML}${dateHTML}</div>
                             <div class="tag-price-wrap">
                             ${oldHTML}
                             <div class="tag-price-container">
-                                <div class="tag-price-slide" style="transform: translateX(${xOffset}px);">
-                                <div class="tag-price">${pDisp}</div>
-                                </div>
+                                <div class="tag-price-slide" style="transform: translateX(${xOffset}px);"><div class="tag-price">${pDisp}</div></div>
                                 <div class="tag-baht-anchor">${bahtHTML}</div>
                             </div>
                             </div>
                         </div>`;
-                } 
+                }
                 else if(item.TagMode === 'dual') {
-                    const rawP2 = parseFloat(item.Price2) || 0; const p2Disp = Number.isInteger(rawP2) ? rawP2 : rawP2.toFixed(2);
-                    const p1Label = item.Unit ? `ปลีก (1 ${safeUnit})` : 'ราคาปลีก'; const p2Label = safeUnit2 || 'ราคาส่ง';
-                    const sizeSubHTML = safeSize ? `<div style="font-size:9px; font-weight:600; margin-top:2px;">[ ขนาด ${safeSize} ]</div>` : '';
-
-                    tagMiddleHTML = `
-                        <div class="tag-name-area"><div class="tag-name" style="font-size:${item.NameFontSize||13}px">${safeName}</div>${sizeSubHTML}</div>
-                        <div class="tag-mid-dual">
-                            <div class="dual-col"><div class="dual-badge">${p1Label}</div><div class="dual-price-row"><div class="dual-price-val">${pDisp}</div><div class="dual-baht">บาท</div></div></div>
-                            <div class="dual-div"></div>
-                            <div class="dual-col"><div class="dual-badge">${p2Label}</div><div class="dual-price-row"><div class="dual-price-val">${p2Disp}</div><div class="dual-baht">บาท</div></div></div>
-                        </div>`;
+                    const p2Disp = Utils.fmtPrice(item.Price2);
+                    if(item.DualStyle === 'B') {
+                        // Style B: big hero retail price + black wholesale strip
+                        const metaBits = `${sizeHTML}${unitHTML}${packHTML}`;
+                        const wsStrip = (item.Price2 && String(item.Price2).trim() !== '')
+                            ? `<div class="wholesale-strip"><span class="ws-label">${safeUnit2 || 'ราคาส่ง'}</span><span class="ws-price">${p2Disp}</span><span class="ws-baht">บาท</span></div>`
+                            : '';
+                        tagMiddleHTML = `
+                            <div class="tag-name-area"><div class="tag-name" style="font-size:${item.NameFontSize||13}px">${safeName}</div></div>
+                            <div class="tag-mid-hero">
+                                <div class="hero-top">
+                                    <div class="hero-meta">${metaBits}</div>
+                                    <div class="hero-price-box" style="transform:translateX(${xOffset}px)"><span class="hero-price">${pDisp}</span><span class="hero-baht">บาท</span></div>
+                                </div>
+                                ${wsStrip}
+                            </div>`;
+                    } else {
+                        // Style A: two-column refined
+                        const p1Label = 'ปลีก'; const p2Label = safeUnit2 || 'ราคาส่ง';
+                        const sizeSubHTML = safeSize ? `<div style="font-size:9px; font-weight:600; margin-top:2px; line-height:1.3;">[ ${LBL_SIZE} ${safeSize} ]</div>` : '';
+                        tagMiddleHTML = `
+                            <div class="tag-name-area"><div class="tag-name" style="font-size:${item.NameFontSize||13}px">${safeName}</div>${sizeSubHTML}</div>
+                            <div class="tag-mid-dual">
+                                <div class="dual-col"><div class="dual-badge">${p1Label}</div><div class="dual-price-row"><div class="dual-price-val">${pDisp}</div><div class="dual-baht">บาท</div></div></div>
+                                <div class="dual-div"></div>
+                                <div class="dual-col"><div class="dual-badge">${p2Label}</div><div class="dual-price-row"><div class="dual-price-val">${p2Disp}</div><div class="dual-baht">บาท</div></div></div>
+                            </div>`;
+                    }
                 }
                 else if(item.TagMode === 'large') {
-                    tagClass = 'price-tag-large'; 
-                    const rawP2 = parseFloat(item.Price2) || 0; const p2Disp = Number.isInteger(rawP2) ? rawP2 : rawP2.toFixed(2);
-                    
+                    tagClass = 'price-tag-large';
+                    const p2Disp = Utils.fmtPrice(item.Price2);
                     let largeLeftHTML = '';
-                    if(safeSize) largeLeftHTML += `<div>ขนาด ${safeSize}</div>`; largeLeftHTML += `<div>บรรจุ 1 ${safeUnit}</div>`;
-                    if(safeUnit2) largeLeftHTML += `<div>${safeUnit2}</div>`;
+                    if(imgURL) largeLeftHTML += `<img class="tag-large-img" src="${Utils.escapeHTML(imgURL)}" onerror="this.style.display='none'">`;
+                    if(safeSize) largeLeftHTML += `<div>${LBL_SIZE} ${safeSize}</div>`;
+                    largeLeftHTML += `<div>${LBL_UNIT} 1 ${safeUnit}</div>`;
+                    if(safePack) largeLeftHTML += `<div>📦 ${safePack}</div>`;
                     if(safeMfg || safeExp) {
                         largeLeftHTML += `<div style="margin-top:6px;">`;
                         if(safeMfg) largeLeftHTML += `<div class="tag-date-txt" style="font-size:11px;">MFG: ${safeMfg}</div>`;
@@ -852,9 +1204,8 @@ class UIController {
                         largeLeftHTML += `</div>`;
                     }
                     if(item.Price2 && String(item.Price2).trim() !== '') {
-                        largeLeftHTML += `<div class="tag-large-box"><div class="tag-large-box-title">ราคาส่ง (Case Price)</div><div class="tag-large-box-price">${p2Disp} <span style="font-size:12px; font-weight:800;">บาท</span></div></div>`;
+                        largeLeftHTML += `<div class="tag-large-box"><div class="tag-large-box-title">${safeUnit2 || 'ราคาส่ง'}</div><div class="tag-large-box-price">${p2Disp} <span style="font-size:12px; font-weight:800;">บาท</span></div></div>`;
                     }
-
                     tagMiddleHTML = `
                         <div class="tag-name-area-large"><div class="tag-name-large" style="font-size:calc(${item.NameFontSize||14}px + 6px)">${safeName}</div></div>
                         <div class="tag-large-body">
@@ -871,25 +1222,24 @@ class UIController {
                     ${tagMiddleHTML}
                     <div class="tag-bc-area"><svg id="${sid}"></svg></div>
                     </div>`);
-                
+
                 if(item.Barcode) bcs.push({id:sid, code:String(item.Barcode), mode:item.TagMode});
             }
         });
-        
-        setTimeout(() => { 
-            bcs.forEach(b => { 
-                try{ 
+
+        setTimeout(() => {
+            bcs.forEach(b => {
+                try{
                     const isLarge = b.mode === 'large';
                     JsBarcode(`#${b.id}`, b.code, {
-                        format:'CODE128', 
-                        width: isLarge ? 2.2 : 1.4, 
-                        height: isLarge ? bcHeightLrg : bcHeightStd, 
+                        format:'CODE128', width: isLarge ? 2.2 : 1.4, height: isLarge ? bcHeightLrg : bcHeightStd,
                         displayValue: true, fontSize: 11, font: "sans-serif", fontOptions: "bold", textMargin: 1, margin: 1
-                    }); 
-                }catch(e){ } 
-            }); 
+                    });
+                }catch(e){ }
+            });
         }, 50);
     }
+
     selectTag(tagEl) {
         document.querySelectorAll('.price-tag').forEach(t => t.classList.remove('selected'));
         document.querySelectorAll('.q-item').forEach(q => q.classList.remove('selected'));
@@ -901,8 +1251,6 @@ class UIController {
         if (qItem) {
             qItem.classList.add('selected');
             qItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            qItem.style.transition = 'box-shadow .15s';
-            setTimeout(() => { qItem.style.transition = ''; }, 600);
         }
     }
 }
@@ -911,22 +1259,41 @@ const App = {
     audio: new AudioEngine(),
     database: new DatabaseService(),
     scanner: new ScannerService(),
-    state: null, ui: null,
-    
+    sync: null, state: null, ui: null,
+
     init: function() {
         this.state = new StateManager();
+        this.sync = new SyncService();
         this.ui = new UIController();
         this.ui.applyCSSVars();
         this.ui.renderFull();
-        this.database.sync();
         this.scanner.connect();
-        
+
+        // Initial DB sync then background auto-check
+        this.database.sync().then(() => {
+            const diffs = this.sync.computeDiffs();
+            if(diffs.length) { this.sync.flagInline(diffs); this.ui.showToast(`⚠ ${diffs.length} รายการราคาต่างจาก Sheet · กด SYNC`, 'error'); }
+            this.sync.startAuto();
+        });
+
         document.body.addEventListener('click', () => this.audio.init(), { once: true });
     }
 };
 
-document.addEventListener("DOMContentLoaded", () => App.init());
+// accept single price diff shortcut from inline flag
+SyncService.prototype.acceptSingle = function(idx) {
+    const item = App.state.queue[idx];
+    if(item && item.PriceDiff != null) {
+        item.Price = item.PriceDiff;
+        item.PriceDiff = null;
+        App.state.saveToStorage();
+        App.ui.renderFull();
+        App.ui.showToast('อัปเดตราคาแล้ว ✓', 'success');
+        App.audio.play('success');
+    }
+};
 
+document.addEventListener("DOMContentLoaded", () => App.init());
 </script>
 </body>
 </html>
